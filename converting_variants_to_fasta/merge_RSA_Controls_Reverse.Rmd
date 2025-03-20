@@ -1,0 +1,184 @@
+
+```{r}
+
+library(readxl)
+
+
+demo <- read.csv("SA_control_patient_demographic.csv")
+VC <- read_excel("VC_file.xlsx")
+
+
+head(demo)
+tail(demo)
+nrow(demo)
+
+head(VC)
+tail(VC)
+nrow(VC)
+
+#Get descriptor of healthy individuals
+unique(demo$Blood.pressure.and.blood.glucose.classifications)
+
+colnames(demo)
+```
+
+
+```{r}
+
+library(stringr)
+
+
+#Demographic table
+
+#Split demo on X24.h... col to systolic and diastolic
+
+demo$systolic <- str_split_fixed(demo$X24.h.systolic...diastolic.ABPM..mmHg., " / ", 2)[,1]
+demo$diastolic <- str_split_fixed(demo$X24.h.systolic...diastolic.ABPM..mmHg., " / ", 2)[,2]
+
+head(demo)
+
+
+#Change systolic/diastolic values from string to numeric
+demo$systolic <- as.numeric(demo$systolic)
+demo$diastolic <- as.numeric(demo$diastolic)
+
+
+#Subset demo to only "Normal and optimal"
+nrow(demo[demo$Blood.pressure.and.blood.glucose.classifications == "Normal and optimal",])
+demo <- demo[demo$Blood.pressure.and.blood.glucose.classifications == "Normal and optimal", ]
+
+
+
+
+#Variant call table
+
+#Round VC systolic and diastolic numbers to nearest 1
+
+#VC$Mean.24.hour.systolic.ambulatory.blood.pressure.measurement <- round(VC$Mean.24.hour.systolic.ambulatory.blood.pressure.measurement, 0)
+#VC$Mean.24.hour.diastolic.ambulatory.blood.pressure.measurement <- round(VC$Mean.24.hour.diastolic.ambulatory.blood.pressure.measurement, 0)
+
+
+#Remove trailing /n from gender column?
+
+example <- VC[VC$`Mean 24 hour systolic ambulatory blood pressure measurement` == 104, ]
+
+example
+
+VC[VC$`number ID` == 335, ]
+```
+
+
+```{r}
+
+#Merge datasets 
+#based on demo = Gender, systolic, diastolic, hbA1c... and VC = Gender, systolic, diastolic, HbA1C...
+
+#nrow demo = 362
+#nrow VC = 370
+#nrow demo "Normal and optimal" = 77
+
+#32 merged rows out of 77
+
+
+df <- merge(demo, VC, by.x = c("Gender", "systolic", "diastolic", "HbA1c...."), by.y = c("Gender", "Mean 24 hour systolic ambulatory blood pressure measurement", "Mean 24 hour diastolic ambulatory blood pressure measurement", "HbA1C% (blood glucose measurement)")) #, all.x = TRUE
+
+
+#Check how many rows from demo merged with VC
+
+nrow(df)
+head(df)
+
+nrow(df[ is.na(df$`Consensus variants        →`), ]) #18 rows didnt merge
+nrow(df[ !is.na(df$`Consensus variants        →`), ]) #59 out of 77 healthy records merged
+
+print(unique(df$`number ID`)) #59 unique VC records (+1 for all NA values)
+
+
+#Looking at rows that didnt merge
+test_2 <- df[ is.na(df$`Consensus variants        →`), ]
+nrow(test_2)
+head(test_2)
+
+write.csv(test_2, "test_2.csv")
+
+```
+
+```{r}
+
+#Making the table for converting.ipnyb
+
+#Format
+# csv file containing lines of : mk1 0845; AJHG65 ; T669C; A750G; A1438G; G1719A;...; A15326G
+
+
+#Add IDs
+
+df <- tibble::rowid_to_column(df, "ID")
+df$ID <- paste0("SAC", df$ID)
+head(df)
+
+
+#Keep the IDs and variants
+
+df[,23:101]
+SA_control_healthy <- df[, c(1, 23:101)]
+
+head(SA_control_healthy)
+
+
+#Now format the lines to match Wasim's input format
+
+formatted_lines <- apply(SA_control_healthy, 1, function(row) paste(row, collapse = "; ")) #concats values into lines separated by ;
+formatted_lines <- gsub("; NA.*", "", formatted_lines) #removes everything after NA
+
+
+
+writeLines(formatted_lines, "SA_control_healthy.txt")
+
+
+```
+
+
+```{r}
+
+write.csv(df, "test.csv")
+
+#write.csv(demo, "demo.csv")
+#write.csv(VC, "VC.csv")
+
+
+```
+
+
+```{r}
+
+#Making variant.txt file for all patients
+
+
+#Make patient IDs
+
+df_all <- VC
+df_all$`number ID` <- paste0("SAC", df_all$`number ID`)
+head(df_all)
+
+
+#Keep the IDs and variants
+
+head(df_all[,6:84])
+SA_control_all <- df_all[,c(1,6:84)]
+
+head(SA_control_all)
+
+
+#Now format the lines to match Wasim's input format
+
+formatted_lines <- apply(SA_control_all, 1, function(row) paste(row, collapse = "; ")) #concats values into lines separated by ;
+formatted_lines <- gsub("; NA.*", "", formatted_lines) #removes everything after NA
+head(formatted_lines)
+
+writeLines(formatted_lines, "SA_control_all.txt")
+
+```
+
+
+
