@@ -6,8 +6,7 @@
 This README was last updated on 21/03/2025
 
 
-\
-\
+&ensp;
 
 ## Description
 
@@ -19,7 +18,7 @@ This repository contains a tool for calculating the mitochondrial DNA (mtDNA) Va
 
 ## Contents
 
-1. [Variant load score calculator with Gradio GUI] (./VLS_calculator/)
+1. [Variant load score calculator with Gradio GUI] (VLS_calculator/)
 - The Jupyter notebook loads a user-friendly interface for calculating the variant load score across all protein-encoding genes in mtDNA.
 - The following files are required to run the tool:
 	* Patient data:
